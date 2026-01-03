@@ -78,6 +78,8 @@ async function navigateToSearchPage(page) {
     await page.click('input[value="Submit"]');
     console.log('Submit button clicked');
     await page.waitForLoadState('networkidle');
+    console.log('Loading data...');
+
     // await page.screenshot({ path: 'step10_submit_button_clicked.png' });  
 
     // Step 11: View table rows
@@ -104,6 +106,23 @@ async function navigateToSearchPage(page) {
     for (let i = 1; i < rowCount; i++) {
       const row = resultsTableRows.nth(i);
       const rowData = await row.locator('td').allInnerTexts();
+
+      const link = row.getByRole('link');
+
+      if (!(await link.isVisible())) continue;
+
+      const [casePage] = await Promise.all([
+        page.context().waitForEvent('page'), // why we need this
+        link.click(),
+      ]);
+
+      await casePage.waitForLoadState('networkidle');
+
+      console.log('Case page opened:', casePage.url());
+
+      // 🔽 scrape participants here
+
+      await casePage.close();
 
       const caseData = {};
       for(let j = 0; j < headers.length; j++) {
