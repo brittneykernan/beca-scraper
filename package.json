@@ -1,0 +1,17 @@
+{
+  "name": "trial-scraper",
+  "version": "1.0.0",
+  "description": "Automates case search and data extraction on BrevardClerk.us",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "test": "node tests/runTests.js",
+  "postinstall": "npx playwright install"
+  },
+  "author": "Brittney Kernan",
+  "license": "MIT",
+  "dependencies": {
+    "csv-writer": "^1.6.0",
+    "playwright": "^1.38.0"
+  }
+}
