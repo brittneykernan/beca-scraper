@@ -260,9 +260,17 @@ function generateHTML(cases, config) {
   
   dates.forEach(date => {
     const formattedDate = formatDate(date);
+    // formatDate returns "DayOfWeek, Month Day, Year" (e.g., "Tuesday, January 13, 2026")
+    // Split by comma: ["DayOfWeek", " Month Day", " Year"]
     const dateParts = formattedDate.split(',');
-    const dateOnly = dateParts[0].trim();
-    const dayOfWeek = dateParts.length > 1 ? dateParts[1].trim() : '';
+    // Join middle and last parts for date with year: "Month Day, Year"
+    const dateOnly = dateParts.length >= 3 
+      ? (dateParts[1].trim() + ',' + dateParts[2].trim())
+      : dateParts.length >= 2 
+        ? (dateParts[0].trim() + ',' + dateParts[1].trim())
+        : dateParts[0].trim();
+    // First part is day of week
+    const dayOfWeek = dateParts.length >= 1 ? dateParts[0].trim() : '';
     
     html += `  <div class="date-section">
     <div class="date-header">${dateOnly}</div>
