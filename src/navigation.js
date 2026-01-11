@@ -72,23 +72,30 @@ async function navigateToSearchPage(page) {
   try {
     // Step 1-4 no longer needed
 
+    // Base URL for resolving relative URLs (used when loading cached HTML)
+    const baseUrl = 'https://vmatrix1.brevardclerk.us/beca';
+    let currentPageUrl = baseUrl + '/Judiciary_Calendar_Search.cfm';
+
     // Check if cached search results exist and skip navigation if so
     if (isCacheEnabled()) {
       const cachedResultsHtml = await getSearchResultsHtml();
       if (cachedResultsHtml) {
         // Load cached search results and skip to table scraping
-        const formPageUrl = 'https://vmatrix1.brevardclerk.us/beca/Judiciary_Calendar_Search.cfm';
-        await page.setContent(cachedResultsHtml, { url: formPageUrl });
+        await page.setContent(cachedResultsHtml, { url: currentPageUrl });
         await page.waitForLoadState('networkidle');
         console.log('[Cache] Using cached search results, skipping navigation steps');
         // Skip to Step 11 (table scraping)
       } else {
         // Cache doesn't exist, proceed with normal navigation
+        console.log('[Cache] Search results cache not found, performing navigation steps');
         await performNavigationSteps(page);
+        // Update currentPageUrl to actual page URL after navigation
+        currentPageUrl = page.url();
       }
     } else {
       // Caching disabled, proceed with normal navigation
       await performNavigationSteps(page);
+      currentPageUrl = page.url();
     }
 
     // Step 11: View table rows
@@ -122,9 +129,11 @@ async function navigateToSearchPage(page) {
         const context = page.context();
         const casePage = await context.newPage();
 
+        // Use currentPageUrl for relative URLs (handles cached HTML case where page.url() is 'about:blank')
+        const pageUrlForResolution = page.url() !== 'about:blank' ? page.url() : currentPageUrl;
         const caseUrl = href.startsWith('http')
           ? href
-          : new URL(href, page.url()).toString();
+          : new URL(href, pageUrlForResolution).toString();
 
         await navigateWithCache(casePage, caseUrl, { waitUntil: 'networkidle' });
         console.log('Case page opened:', casePage.url());
