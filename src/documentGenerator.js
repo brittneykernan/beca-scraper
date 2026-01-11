@@ -282,7 +282,7 @@ function generateHTML(cases, config) {
       grouped[date][time].forEach((caseData, index) => {
         const caseNumber = caseData['Case Number'] || caseData['Case #'] || caseData.caseNumber || 'N/A';
         const defendantName = caseData['Defendant Name'] || caseData.defendantName || 'N/A';
-        const attorneyName = config.attorney || 'N/A';
+        const attorneyName = caseData['Attorneys'] || 'N/A';
         const courtroom = 'Viera';
         const officerName = caseData['Officer Name'] || caseData.officerName || 'N/A';
         const placeholderId = caseData.placeholderId || 'AXXXXX';

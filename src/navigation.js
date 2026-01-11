@@ -138,12 +138,31 @@ async function navigateToSearchPage(page) {
         await navigateWithCache(casePage, caseUrl, { waitUntil: 'networkidle' });
         console.log('Case page opened:', casePage.url());
 
-        // await page.pause()
-
         // Step 16: Scrape data from this page
         const defendantRow = casePage.locator('tr').filter({ hasText: 'DEFENDANT (1)' });
         const defendantName = await defendantRow.locator('td').nth(1).innerText();
         console.log('defendantName', defendantName)
+
+        // Scrape attorney names
+        let attorneys = [];
+        try {
+          const attorneyRows = casePage.locator('tr').filter({ hasText: /ATTORNEY FOR: D\d/i });
+          const rowCount = await attorneyRows.count();
+          
+          for (let i = 0; i < rowCount; i++) {
+            const attorneyRow = attorneyRows.nth(i);
+            const attorneyText = await attorneyRow.locator('td').nth(1).innerText().catch(() => '');
+            if (attorneyText && attorneyText.trim()) {
+              attorneys.push(attorneyText.trim());
+            }
+          }
+          
+          // Remove duplicates and clean up
+          attorneys = [...new Set(attorneys)].filter(a => a && a.trim() !== '');
+          console.log('Attorneys scraped:', attorneys);
+        } catch (error) {
+          console.warn('Error scraping attorney names:', error.message);
+        }
 
         // Scrape officer/trooper/deputy name
         let officerName = 'N/A';
@@ -207,6 +226,7 @@ async function navigateToSearchPage(page) {
         // data from detail page
         caseData['Defendant Name'] = defendantName;
         caseData['Officer Name'] = officerName;
+        caseData['Attorneys'] = attorneys.length > 0 ? attorneys.join(', ') : 'N/A';
         // Add placeholders
         caseData.placeholderId = 'AXXXXX';
         caseData.annotation = '---';
