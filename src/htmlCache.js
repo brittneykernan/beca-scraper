@@ -141,7 +141,7 @@ async function navigateWithCache(page, url, options = {}) {
     // Use cached HTML
     // Extract base URL for resolving relative resources
     const baseUrl = new URL(url).origin;
-    await page.setContent(cachedHtml, { ...options, url: baseUrl });
+    await page.setContent(cachedHtml, { url: baseUrl });
     // Wait for network to be idle if specified
     if (options.waitUntil === 'networkidle') {
       await page.waitForLoadState('networkidle');

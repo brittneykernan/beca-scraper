@@ -1,11 +1,12 @@
+const { navigateWithCache, saveCachedHtml } = require('./htmlCache');
+
 async function navigateToSearchPage(page) {
   try {
     // Step 1-4 no longer needed
 
     // Step 5: Navigate to BECA portal
-    await page.goto('https://vmatrix1.brevardclerk.us/beca/beca_splash.cfm')
+    await navigateWithCache(page, 'https://vmatrix1.brevardclerk.us/beca/beca_splash.cfm', { waitUntil: 'networkidle' });
     console.log('BECA page loaded');
-    await page.waitForLoadState('networkidle')
     await page.evaluate(() => document.querySelector('input[type="Submit"], button').click());
 
     console.log('Accepted terms');
@@ -52,6 +53,16 @@ async function navigateToSearchPage(page) {
     console.log('Clicking Submit Button...');
     await page.click('input[value="Submit"]');
     await page.waitForLoadState('networkidle');
+    
+    // Cache search results page HTML if caching is enabled
+    try {
+      const currentUrl = page.url();
+      const html = await page.content();
+      await saveCachedHtml(currentUrl, html);
+    } catch (error) {
+      // Cache save failure shouldn't break the flow
+      console.warn(`[Cache] Failed to save search results HTML:`, error.message);
+    }
 
     // Step 11: View table rows
     const resultsTable = page.locator('table.TFtable');
@@ -88,7 +99,7 @@ async function navigateToSearchPage(page) {
           ? href
           : new URL(href, page.url()).toString();
 
-        await casePage.goto(caseUrl, { waitUntil: 'networkidle' });
+        await navigateWithCache(casePage, caseUrl, { waitUntil: 'networkidle' });
         console.log('Case page opened:', casePage.url());
 
         // await page.pause()

@@ -9,6 +9,7 @@ This project uses **Playwright (JS)** for browser automation and is modular, eas
 
 * Opens BrevardClerk.us and navigates through the search pages automatically
 * Configurable attorney, judge, and date range
+* HTML caching for offline development (optional)
 * Screenshots taken at each navigation step for testing and verification
 * Modular code: easy to extend for scraping, CSV export, or report generation
 * Works on **Windows, Mac, and Linux**
@@ -35,7 +36,9 @@ This project uses **Playwright (JS)** for browser automation and is modular, eas
 │   ├─ config.json    # Editable search parameters
 │   ├─ browser.js     # Browser launch & session
 │   ├─ navigation.js  # Navigation through search pages
+│   ├─ htmlCache.js   # HTML caching utilities
 │   └─ scraper.js     # (Future) Scraping logic
+├─ /html-cache        # Cached HTML files (created when caching enabled)
 └─ /tests
     └─ runTests.js    # (Future) Test scripts
 ```
@@ -96,6 +99,49 @@ pause
 
 2. Double-click the `.bat` file to run the script.
 3. The console will open and the browser will launch. Screenshots are saved at each navigation step.
+
+---
+
+## **HTML Caching**
+
+The tool supports HTML caching to save scraped pages to disk, allowing you to develop features against saved HTML without hitting the BECA server repeatedly.
+
+### **Enabling Caching**
+
+To enable HTML caching, set the `USE_HTML_CACHE` environment variable to `true`:
+
+**On macOS/Linux:**
+```bash
+USE_HTML_CACHE=true npm start
+```
+
+**On Windows (PowerShell):**
+```powershell
+$env:USE_HTML_CACHE="true"; npm start
+```
+
+**On Windows (Command Prompt):**
+```cmd
+set USE_HTML_CACHE=true && npm start
+```
+
+### **How It Works**
+
+* **First run (with caching enabled)**: The script fetches HTML from the BECA server and saves it to the `html-cache/` directory
+* **Subsequent runs (with caching enabled)**: The script uses cached HTML instead of making live server requests
+* **With caching disabled (default)**: The script always fetches fresh HTML from the server
+
+### **Cache Directory**
+
+* Cached HTML files are stored in the `html-cache/` directory (automatically created when caching is enabled)
+* Files are named using MD5 hashes of URLs for filesystem safety
+* The `html-cache/` directory is automatically ignored by git (already in `.gitignore`)
+
+### **Use Cases**
+
+* **Development**: Speed up development by avoiding repeated server requests
+* **Testing**: Test scraping logic against consistent HTML snapshots
+* **Offline Development**: Develop features even when the BECA server is unavailable
 
 ---
 
