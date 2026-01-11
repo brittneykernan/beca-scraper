@@ -1,67 +1,94 @@
-const { navigateWithCache, saveCachedHtml } = require('./htmlCache');
+const { navigateWithCache, saveCachedHtml, getSearchResultsHtml, saveSearchResultsHtml, isCacheEnabled } = require('./htmlCache');
+
+/**
+ * Perform navigation steps to reach the search results page
+ * @param {object} page - Playwright page object
+ */
+async function performNavigationSteps(page) {
+  // Step 5: Navigate to BECA portal
+  // Note: Use real navigation for pages with forms (setContent doesn't handle form submissions properly)
+  const splashUrl = 'https://vmatrix1.brevardclerk.us/beca/beca_splash.cfm';
+  console.log(`[Cache] Using real navigation (form page): ${splashUrl.substring(0, 50)}...`);
+  await page.goto(splashUrl, { waitUntil: 'networkidle' });
+  console.log('BECA page loaded');
+  await page.evaluate(() => document.querySelector('input[type="Submit"], button').click());
+
+  console.log('Accepted terms');
+  await page.waitForLoadState('networkidle');
+  // await page.screenshot({ path: 'step5_accept.png' });
+
+  // Step 6: Click General Public Court Record Search
+  await page.click('text=General Public Court Records'); 
+  console.log('Reached final search page');
+  await page.waitForLoadState('networkidle');
+  // await page.screenshot({ path: 'step6_final_search.png' });
+
+  // Step 7: Judiciary tab click
+  await page.click('text=Judiciary');
+  console.log('Judiciary tab clicked');
+  await page.waitForLoadState('networkidle');
+  // await page.screenshot({ path: 'step7_judiciary_tab.png' });
+
+  // Step 8: Judge dropdown click
+  await page.selectOption(
+'select[name="judge"]',
+{ label: 'TRAFFIC HEARING OFFICER' }
+  );
+  console.log('Judge selected');
+  await page.waitForLoadState('networkidle');
+  // await page.screenshot({ path: 'step8_judge_selected.png' });
+
+  // Step 9: Start and end date input
+  await page.evaluate(() => {
+    const begin = document.querySelector('#begin_date');
+    const end = document.querySelector('#end_date');
+
+    begin.value = '01/12/2026';
+    end.value = '01/18/2026';
+
+    begin.dispatchEvent(new Event('change', { bubbles: true }));
+    end.dispatchEvent(new Event('change', { bubbles: true }));
+  });
+  console.log('Start and end date inputted');
+  await page.waitForLoadState('networkidle');
+  // await page.screenshot({ path: 'step9_start_and_end_date_inputted.png' });
+
+  // Step 10: Submit button click
+  console.log('Clicking Submit Button...');
+  await page.click('input[value="Submit"]');
+  await page.waitForLoadState('networkidle');
+  
+  // Cache search results page HTML if caching is enabled
+  try {
+    const html = await page.content();
+    await saveSearchResultsHtml(html);
+  } catch (error) {
+    // Cache save failure shouldn't break the flow
+    console.warn(`[Cache] Failed to save search results HTML:`, error.message);
+  }
+}
 
 async function navigateToSearchPage(page) {
   try {
     // Step 1-4 no longer needed
 
-    // Step 5: Navigate to BECA portal
-    await navigateWithCache(page, 'https://vmatrix1.brevardclerk.us/beca/beca_splash.cfm', { waitUntil: 'networkidle' });
-    console.log('BECA page loaded');
-    await page.evaluate(() => document.querySelector('input[type="Submit"], button').click());
-
-    console.log('Accepted terms');
-    await page.waitForLoadState('networkidle');
-    // await page.screenshot({ path: 'step5_accept.png' });
-
-    // Step 6: Click General Public Court Record Search
-    await page.click('text=General Public Court Records'); 
-    console.log('Reached final search page');
-    await page.waitForLoadState('networkidle');
-    // await page.screenshot({ path: 'step6_final_search.png' });
-
-    // Step 7: Judiciary tab click
-    await page.click('text=Judiciary');
-    console.log('Judiciary tab clicked');
-    await page.waitForLoadState('networkidle');
-    // await page.screenshot({ path: 'step7_judiciary_tab.png' });
-
-    // Step 8: Judge dropdown click
-    await page.selectOption(
-  'select[name="judge"]',
-  { label: 'TRAFFIC HEARING OFFICER' }
-    );
-    console.log('Judge selected');
-    await page.waitForLoadState('networkidle');
-    // await page.screenshot({ path: 'step8_judge_selected.png' });
-
-    // Step 9: Start and end date input
-    await page.evaluate(() => {
-      const begin = document.querySelector('#begin_date');
-      const end = document.querySelector('#end_date');
-
-      begin.value = '01/12/2026';
-      end.value = '01/18/2026';
-
-      begin.dispatchEvent(new Event('change', { bubbles: true }));
-      end.dispatchEvent(new Event('change', { bubbles: true }));
-    });
-    console.log('Start and end date inputted');
-    await page.waitForLoadState('networkidle');
-    // await page.screenshot({ path: 'step9_start_and_end_date_inputted.png' });
-
-    // Step 10: Submit button click
-    console.log('Clicking Submit Button...');
-    await page.click('input[value="Submit"]');
-    await page.waitForLoadState('networkidle');
-    
-    // Cache search results page HTML if caching is enabled
-    try {
-      const currentUrl = page.url();
-      const html = await page.content();
-      await saveCachedHtml(currentUrl, html);
-    } catch (error) {
-      // Cache save failure shouldn't break the flow
-      console.warn(`[Cache] Failed to save search results HTML:`, error.message);
+    // Check if cached search results exist and skip navigation if so
+    if (isCacheEnabled()) {
+      const cachedResultsHtml = await getSearchResultsHtml();
+      if (cachedResultsHtml) {
+        // Load cached search results and skip to table scraping
+        const formPageUrl = 'https://vmatrix1.brevardclerk.us/beca/Judiciary_Calendar_Search.cfm';
+        await page.setContent(cachedResultsHtml, { url: formPageUrl });
+        await page.waitForLoadState('networkidle');
+        console.log('[Cache] Using cached search results, skipping navigation steps');
+        // Skip to Step 11 (table scraping)
+      } else {
+        // Cache doesn't exist, proceed with normal navigation
+        await performNavigationSteps(page);
+      }
+    } else {
+      // Caching disabled, proceed with normal navigation
+      await performNavigationSteps(page);
     }
 
     // Step 11: View table rows

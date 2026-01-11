@@ -1,11 +1,13 @@
 const { launchBrowser } = require('./src/browser');
 const { navigateToSearchPage } = require('./src/navigation');
+const { isCacheEnabled } = require('./src/htmlCache');
 const config = require('./src/config.json');
 
 (async () => {
   const { browser, page } = await launchBrowser(false); // false = headed mode
   try {
     console.log('Starting BrevardClerk automation');
+    console.log(`[Cache] Status: ${isCacheEnabled() ? 'ENABLED' : 'DISABLED'}`);
 
     // Navigation steps
     await navigateToSearchPage(page);

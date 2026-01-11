@@ -119,6 +119,52 @@ async function isCached(url) {
 }
 
 /**
+ * Get cached search results HTML
+ * @returns {Promise<string|null>} - Cached search results HTML or null if not cached
+ */
+async function getSearchResultsHtml() {
+  if (!isCacheEnabled()) {
+    return null;
+  }
+
+  try {
+    const cachePath = path.join(CACHE_DIR, 'search-results.html');
+    const html = await fs.readFile(cachePath, 'utf-8');
+    console.log(`[Cache] Hit: search results page`);
+    return html;
+  } catch (error) {
+    if (error.code === 'ENOENT') {
+      // File doesn't exist, not an error
+      return null;
+    }
+    // Other errors: log but don't fail
+    console.warn(`[Cache] Error reading search results cache:`, error.message);
+    return null;
+  }
+}
+
+/**
+ * Save search results HTML to cache
+ * @param {string} html - The HTML content to cache
+ * @returns {Promise<void>}
+ */
+async function saveSearchResultsHtml(html) {
+  if (!isCacheEnabled()) {
+    return;
+  }
+
+  try {
+    await ensureCacheDir();
+    const cachePath = path.join(CACHE_DIR, 'search-results.html');
+    await fs.writeFile(cachePath, html, 'utf-8');
+    console.log(`[Cache] Saved: search results page`);
+  } catch (error) {
+    // Log but don't fail the scraping process
+    console.warn(`[Cache] Error saving search results cache:`, error.message);
+  }
+}
+
+/**
  * Navigate to a URL with cache support
  * If cache is enabled and cached HTML exists, use it
  * Otherwise, fetch from server and optionally save to cache
@@ -130,6 +176,7 @@ async function isCached(url) {
 async function navigateWithCache(page, url, options = {}) {
   if (!isCacheEnabled()) {
     // Caching disabled: normal navigation
+    console.log(`[Cache] Disabled, using real navigation: ${url.substring(0, 50)}...`);
     await page.goto(url, options);
     return;
   }
@@ -167,4 +214,6 @@ module.exports = {
   saveCachedHtml,
   isCached,
   navigateWithCache,
+  getSearchResultsHtml,
+  saveSearchResultsHtml,
 };
