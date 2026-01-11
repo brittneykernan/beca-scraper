@@ -147,11 +147,30 @@ async function navigateToSearchPage(page) {
         
         console.log('attorney exists')
 
-        // Step 16: Scrape data form this page
+        // Step 16: Scrape data from this page
         const defendantRow = casePage.locator('tr').filter({ hasText: 'DEFENDANT (1)' });
         const defendantName = await defendantRow.locator('td').nth(1).innerText();
         console.log('defendantName', defendantName)
 
+        // Scrape officer/trooper/deputy name
+        let officerName = 'N/A';
+        try {
+          // Try to find rows containing "TROOPER", "OFFICER", or "DEPUTY"
+          const officerRows = casePage.locator('tr').filter({ hasText: /Officer/i });
+          const officerCount = await officerRows.count();
+          if (officerCount > 0) {
+            // Get the first matching row's name (usually in second column)
+            const firstOfficerRow = officerRows.first();
+            const officerText = await firstOfficerRow.locator('td').nth(1).innerText().catch(() => '');
+            if (officerText) {
+              // Extract name (may include title, try to get just the name part)
+              const nameMatch = officerText.match(/([A-Z\s]+)/);
+              officerName = nameMatch ? nameMatch[1].trim() : officerText.trim();
+            }
+          }
+        } catch (error) {
+          console.warn('Error scraping officer name:', error.message);
+        }
 
         // Step 17: Add case data to output data
         const caseData = {};
@@ -160,7 +179,11 @@ async function navigateToSearchPage(page) {
           caseData[headers[j]] = rowData[j];
         }
         // data from detail page
-        caseData['Defendant Name'] = defendantName
+        caseData['Defendant Name'] = defendantName;
+        caseData['Officer Name'] = officerName;
+        // Add placeholders
+        caseData.placeholderId = 'AXXXXX';
+        caseData.annotation = '---';
         allCases.push(caseData);
 
         await casePage.close();
@@ -168,6 +191,8 @@ async function navigateToSearchPage(page) {
     }
 
     console.log(allCases, ' all cases in table');
+
+    return allCases;
 
   } catch (err) {
     console.error('Navigation error:', err);
