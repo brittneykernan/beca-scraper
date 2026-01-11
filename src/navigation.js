@@ -140,13 +140,6 @@ async function navigateToSearchPage(page) {
 
         // await page.pause()
 
-        // Step 15: Look for Attorney's name
-        const target = 'KERNAN RODNEY M';
-        const tableRow = casePage.locator(`tr:has-text("${target}")`);
-        if (!(await tableRow.isVisible())) continue;
-        
-        console.log('attorney exists')
-
         // Step 16: Scrape data from this page
         const defendantRow = casePage.locator('tr').filter({ hasText: 'DEFENDANT (1)' });
         const defendantName = await defendantRow.locator('td').nth(1).innerText();
@@ -155,17 +148,50 @@ async function navigateToSearchPage(page) {
         // Scrape officer/trooper/deputy name
         let officerName = 'N/A';
         try {
-          // Try to find rows containing "TROOPER", "OFFICER", or "DEPUTY"
-          const officerRows = casePage.locator('tr').filter({ hasText: /Officer/i });
-          const officerCount = await officerRows.count();
-          if (officerCount > 0) {
-            // Get the first matching row's name (usually in second column)
-            const firstOfficerRow = officerRows.first();
-            const officerText = await firstOfficerRow.locator('td').nth(1).innerText().catch(() => '');
-            if (officerText) {
-              // Extract name (may include title, try to get just the name part)
-              const nameMatch = officerText.match(/([A-Z\s]+)/);
-              officerName = nameMatch ? nameMatch[1].trim() : officerText.trim();
+          // Find the first table in the form with id="inputForm"
+          const inputForm = casePage.locator('form#inputForm');
+          const formExists = await inputForm.count() > 0;
+          
+          if (formExists) {
+            // Get the first table within the form
+            const firstTable = inputForm.locator('table').first();
+            const tableExists = await firstTable.count() > 0;
+          
+            if (tableExists) {
+              // Get the second row (index 1)
+              const rows = firstTable.locator('tr');
+              const rowCount = await rows.count();
+              
+              if (rowCount > 1) {
+                const secondRow = rows.nth(1); // second row (index 1)
+                
+                // Get the last cell in that row
+                const cells = secondRow.locator('td');
+                const cellCount = await cells.count();
+                
+                if (cellCount > 0) {
+                  const lastCell = cells.last(); // last cell
+                  
+                  // Find the span in that cell
+                  const span = lastCell.locator('span');
+                  const spanExists = await span.count() > 0;
+                  
+                  if (spanExists) {
+                    const officerText = await span.first().innerText().catch(() => '');
+                    if (officerText && officerText.trim()) {
+                      // Drop the last part separated by a space
+                      const nameParts = officerText.trim().split(' ');
+                      if (nameParts.length > 1) {
+                        nameParts.pop(); // Remove last part
+                        officerName = nameParts.join(' ').trim();
+                      } else {
+                        officerName = officerText.trim();
+                      }
+                      console.log('Officer name scraped:', officerName);
+                    }
+                  }
+                }
+              }
             }
           }
         } catch (error) {
