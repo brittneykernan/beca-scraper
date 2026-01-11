@@ -158,9 +158,9 @@ function generateHTML(cases, config) {
     }
     
     body {
-      font-family: 'Times New Roman', serif;
+      font-family: Arial, Helvetica, sans-serif;
       font-size: 12pt;
-      line-height: 1.4;
+      line-height: 1.5;
       color: #000;
       background: #fff;
       padding: 0.5in;
@@ -173,64 +173,61 @@ function generateHTML(cases, config) {
     
     .date-header {
       font-size: 14pt;
-      font-weight: bold;
+      font-weight: normal;
+      background-color: #d3d3d3;
+      padding: 8px 12px;
       margin-bottom: 5px;
     }
     
     .day-of-week {
       font-size: 12pt;
+      font-weight: normal;
       margin-bottom: 15px;
     }
     
     .time-block {
-      margin-bottom: 20px;
+      margin-bottom: 15px;
       page-break-inside: avoid;
     }
     
     .time-header {
       font-weight: bold;
-      margin-bottom: 8px;
-    }
-    
-    .case-entry {
-      margin-bottom: 12px;
-      margin-left: 20px;
-    }
-    
-    .case-header {
       margin-bottom: 5px;
     }
     
-    .case-number {
-      font-weight: bold;
-      display: inline-block;
-      min-width: 140px;
+    .case-entry {
+      margin-left: 30px;
+      margin-bottom: 4px;
+      font-size: 11pt;
+      white-space: pre;
     }
     
     .defendant-name {
       display: inline-block;
-      min-width: 250px;
+      min-width: 200px;
     }
     
     .case-id {
       display: inline-block;
-      min-width: 100px;
-      margin-left: 10px;
+      min-width: 120px;
     }
     
-    .case-annotation {
+    .charge-status {
       display: inline-block;
-      margin-left: 10px;
+      min-width: 80px;
     }
     
-    .case-details {
-      margin-left: 20px;
-      margin-top: 3px;
+    .officer-name {
+      display: inline-block;
+      text-align: right;
+      float: right;
+      min-width: 180px;
+    }
+    
+    .hearing-type {
+      margin-left: 15px;
+      margin-bottom: 5px;
       font-size: 11pt;
-    }
-    
-    .case-detail-line {
-      margin-bottom: 2px;
     }
     
     @media print {
@@ -277,29 +274,19 @@ function generateHTML(cases, config) {
       const timeBlock = time !== 'Unknown' ? formatTimeBlock(time) : 'Time TBD';
       html += `    <div class="time-block">
       <div class="time-header">${timeBlock}</div>
+      <div class="hearing-type">Tr Hrg -- Viera</div>
 `;
       
-      grouped[date][time].forEach((caseData, index) => {
+      grouped[date][time].forEach((caseData) => {
         const caseNumber = caseData['Case Number'] || caseData['Case #'] || caseData.caseNumber || 'N/A';
         const defendantName = caseData['Defendant Name'] || caseData.defendantName || 'N/A';
-        const attorneyName = caseData['Attorneys'] || 'N/A';
-        const courtroom = 'Viera';
         const officerName = caseData['Officer Name'] || caseData.officerName || 'N/A';
         const placeholderId = caseData.placeholderId || 'AXXXXX';
         const annotation = caseData.annotation || '---';
         
+        // Format: Defendant Name | Case ID | Charge/Status | Officer Name (right-aligned)
         html += `      <div class="case-entry">
-        <div class="case-header">
-          <span class="case-number">${index + 1}. ${defendantName}</span>
-          <span class="case-id">${placeholderId}</span>
-          <span class="case-annotation">${annotation}</span>
-        </div>
-        <div class="case-details">
-          <div class="case-detail-line">Case: ${caseNumber}</div>
-          <div class="case-detail-line">Attorney: ${attorneyName}</div>
-          <div class="case-detail-line">Courtroom: ${courtroom}</div>
-          <div class="case-detail-line">Officer/Trooper/Deputy: ${officerName}</div>
-        </div>
+        <span class="defendant-name">${defendantName}</span><span class="case-id">${caseNumber}</span><span class="charge-status">${annotation}</span><span class="officer-name">${officerName}</span>
       </div>
 `;
       });
